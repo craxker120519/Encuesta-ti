@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encuesta de Satisfacción de TI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Contenido Principal (visible para todos) -->
+    <div id="mainContent" class="container">
+        <h1>Encuesta de Satisfacción de TI</h1>
+        <p class="subtitle">Tu opinión nos ayuda a mejorar nuestro servicio</p>
+        
+        <!-- Botón de acceso admin (solo se muestra cuando no hay sesión activa) -->
+        <div id="adminAccess" class="admin-access-section">
+            <button onclick="mostrarLogin()" class="admin-btn">🔐 Acceso Administración</button>
+        </div>
+        
+        <form id="encuestaForm">
+            <div class="form-group">
+                <label for="nombre">Nombre del usuario <span class="required">*</span></label>
+                <input type="text" id="nombre" required placeholder="Ingresa tu nombre completo">
+                <div id="nombreError" class="error-message">Por favor ingresa tu nombre</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="atendio">¿Quién le atendió? <span class="required">*</span></label>
+                <select id="atendio" required>
+                    <option value="">Seleccione quien le atendió</option>
+                    <option value="Roberto">Roberto</option>
+                    <option value="Chantely">Chantely</option>
+                    <option value="David">David</option>
+                </select>
+                <div id="atendioError" class="error-message">Por favor selecciona quien te atendió</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="falla">¿Qué fue lo que falló? <span class="required">*</span></label>
+                <input type="text" id="falla" required placeholder="Describe específicamente qué falló (ej: Mi computadora no enciende, el WiFi está lento, etc.)">
+                <div id="fallaError" class="error-message">Por favor describe qué falló</div>
+                <div class="suggestions">
+                    <strong>Ejemplos comunes:</strong>
+                    <span class="suggestion-tag" onclick="insertSuggestion('La computadora no enciende')">Computadora no enciende</span>
+                    <span class="suggestion-tag" onclick="insertSuggestion('El WiFi está muy lento')">WiFi lento</span>
+                    <span class="suggestion-tag" onclick="insertSuggestion('No puedo abrir Word')">Word no abre</span>
+                    <span class="suggestion-tag" onclick="insertSuggestion('La impresora no funciona')">Impresora no funciona</span>
+                    <span class="suggestion-tag" onclick="insertSuggestion('Error con remision')">Error con remision</span>
+                    <span class="suggestion-tag" onclick="insertSuggestion('Error con factura')">Error con factura</span>
+                    <span class="suggestion-tag" onclick="insertSuggestion('Correccion de documento')">Correccion de documento</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>1. ¿Cómo califica el soporte técnico recibido? <span class="required">*</span></label>
+                <div class="rating">
+                    <div class="rating-option">
+                        <input type="radio" id="soporte1" name="soporte" value="1" required>
+                        <label for="soporte1">1<br><small>Muy malo</small></label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" id="soporte2" name="soporte" value="2">
+                        <label for="soporte2">2<br><small>Malo</small></label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" id="soporte3" name="soporte" value="3">
+                        <label for="soporte3">3<br><small>Regular</small></label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" id="soporte4" name="soporte" value="4">
+                        <label for="soporte4">4<br><small>Bueno</small></label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" id="soporte5" name="soporte" value="5">
+                        <label for="soporte5">5<br><small>Excelente</small></label>
+                    </div>
+                </div>
+                <div id="soporteError" class="error-message">Por favor selecciona una calificación</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="resuelto">2. ¿El problema fue resuelto satisfactoriamente? <span class="required">*</span></label>
+                <select id="resuelto" required>
+                    <option value="">Seleccione una opción</option>
+                    <option value="Sí">Sí, completamente</option>
+                    <option value="Parcialmente">Parcialmente</option>
+                    <option value="No">No, no se resolvió</option>
+                </select>
+                <div id="resueltoError" class="error-message">Por favor selecciona una opción</div>
+            </div>
+            
+            <div class="form-group">
+                <label>3. ¿Cómo califica el tiempo de respuesta del equipo de TI? <span class="required">*</span></label>
+                <div class="rating">
+                    <div class="rating-option">
+                        <input type="radio" id="tiempo1" name="tiempo" value="1" required>
+                        <label for="tiempo1">1<br><small>Muy lento</small></label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" id="tiempo2" name="tiempo" value="2">
+                        <label for="tiempo2">2<br><small>Lento</small></label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" id="tiempo3" name="tiempo" value="3">
+                        <label for="tiempo3">3<br><small>Aceptable</small></label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" id="tiempo4" name="tiempo" value="4">
+                        <label for="tiempo4">4<br><small>Rápido</small></label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" id="tiempo5" name="tiempo" value="5">
+                        <label for="tiempo5">5<br><small>Muy rápido</small></label>
+                    </div>
+                </div>
+                <div id="tiempoError" class="error-message">Por favor selecciona una calificación</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="comentarios">4. Comentarios adicionales (opcional)</label>
+                <textarea id="comentarios" rows="4" placeholder="Escribe aquí tus comentarios, sugerencias o observaciones adicionales..."></textarea>
+            </div>
+            
+            <button type="submit">Enviar Encuesta</button>
+        </form>
+        
+        <div id="successMessage" class="success-message">
+            Encuesta enviada exitosamente
+        </div>
+    </div>
+
+    <!-- Panel de Login (oculto inicialmente) -->
+    <div id="loginScreen" class="login-container" style="display: none;">
+        <div class="login-form">
+            <h2>Acceso al Sistema de Administración</h2>
+            <div class="form-group">
+                <label for="username">Usuario:</label>
+                <input type="text" id="username" placeholder="Ingrese su usuario">
+            </div>
+            <div class="form-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" placeholder="Ingrese su contraseña">
+            </div>
+            <div class="login-buttons">
+                <button onclick="validarLogin()">Ingresar</button>
+                <button onclick="ocultarLogin()" class="cancel-btn">Cancelar</button>
+            </div>
+            <div id="loginError" class="error-message"></div>
+            <div class="login-info">
+                <p>Por favor contactar con el equipo de IT si necesita acceso al historial de encuestas.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de administración (oculto inicialmente) -->
+    <div id="adminPanel" class="admin-panel" style="display: none;">
+        <div class="panel-content">
+            <div class="panel-header">
+                <h2>Administración de Encuestas</h2>
+                <button onclick="cerrarSesion()" class="logout-btn">Cerrar Sesión</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalEncuestas">0</div>
+                    <div class="stat-label">Total de encuestas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="promedioSoporte">0</div>
+                    <div class="stat-label">Calificación promedio</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="problemasResueltos">0%</div>
+                    <div class="stat-label">Problemas resueltos</div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="encuestasRoberto">0</div>
+                    <div class="stat-label">Encuestas - Roberto</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="encuestasChantely">0</div>
+                    <div class="stat-label">Encuestas - Chantely</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="encuestasDavid">0</div>
+                    <div class="stat-label">Encuestas - David</div>
+                </div>
+            </div>
+            
+            <!-- Contador de almacenamiento -->
+            <div class="storage-counter">
+                <h4>Uso de Almacenamiento</h4>
+                <div class="storage-bar">
+                    <div class="storage-fill" id="storageFill"></div>
+                </div>
+                <div class="storage-info">
+                    <span id="storageUsed">0 KB usados</span>
+                    <span id="storageRemaining">Restan: 0 encuestas</span>
+                </div>
+            </div>
+            
+            <!-- Pestañas para gráficas -->
+            <div class="tabs">
+                <button class="tab-button active" onclick="abrirTab(event, 'tabEstadisticas')">Estadísticas</button>
+                <button class="tab-button" onclick="abrirTab(event, 'tabGraficas')">Gráficas</button>
+            </div>
+            
+            <!-- Contenido de pestañas -->
+            <div id="tabEstadisticas" class="tab-content active">
+                <div class="action-buttons">
+                    <button onclick="descargarExcelCompleto()" class="download-btn">📥 Descargar Encuestas (Excel)</button>
+                    <button onclick="reiniciarEncuestas()" class="reset-btn">🔄 Reiniciar Encuestas</button>
+                </div>
+            </div>
+            
+            <div id="tabGraficas" class="tab-content">
+                <div class="charts-container">
+                    <div class="chart-item">
+                        <h4>Calificación del Soporte Técnico</h4>
+                        <canvas id="chartSoporte"></canvas>
+                    </div>
+                    <div class="chart-item">
+                        <h4>Tiempo de Respuesta</h4>
+                        <canvas id="chartTiempo"></canvas>
+                    </div>
+                    <div class="chart-item">
+                        <h4>Resolución de Problemas</h4>
+                        <canvas id="chartResolucion"></canvas>
+                    </div>
+                    <div class="chart-item">
+                        <h4>Distribución por Técnico</h4>
+                        <canvas id="chartTecnicos"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
