@@ -4,8 +4,106 @@
 let encuestas = [];
 const TECNICOS = ['Roberto', 'Chantely', 'David'];
 let usuarioLogueado = false;
-const MAX_STORAGE_KB = 5120; // 5MB máximo de almacenamiento
-let charts = {}; // Objeto para almacenar las instancias de gráficas
+const MAX_STORAGE_KB = 5120;
+let charts = {};
+let storageDisponible = true;
+let backupEncuestas = [];
+
+// =============================================
+// VERIFICACIÓN DE LOCALSTORAGE
+// =============================================
+function verificarLocalStorage() {
+    try {
+        const test = 'test';
+        localStorage.setItem(test, test);
+        localStorage.removeItem(test);
+        storageDisponible = true;
+        console.log('localStorage está disponible');
+        return true;
+    } catch (e) {
+        console.error('localStorage no disponible:', e);
+        storageDisponible = false;
+        
+        // Mostrar advertencia al usuario
+        setTimeout(() => {
+            alert('⚠️ Advertencia: El almacenamiento local no está disponible. Las encuestas solo se guardarán en esta sesión.');
+        }, 2000);
+        
+        return false;
+    }
+}
+
+// =============================================
+// FUNCIONES MEJORADAS DE GESTIÓN DE DATOS
+// =============================================
+function cargarEncuestas() {
+    if (!storageDisponible) {
+        console.log('Storage no disponible, cargando array vacío');
+        return [];
+    }
+    
+    try {
+        const encuestasGuardadas = localStorage.getItem('encuestasSatisfaccionTI');
+        if (encuestasGuardadas) {
+            const parsed = JSON.parse(encuestasGuardadas);
+            console.log(`Encuestas cargadas: ${parsed.length}`);
+            return parsed;
+        }
+        return [];
+    } catch (error) {
+        console.error('Error cargando encuestas:', error);
+        storageDisponible = false;
+        return [];
+    }
+}
+
+function guardarEncuestas() {
+    if (!storageDisponible) {
+        console.log('Storage no disponible, no se guardaron encuestas');
+        return false;
+    }
+    
+    try {
+        const datos = JSON.stringify(encuestas);
+        const tamaño = new Blob([datos]).size;
+        
+        // Verificar si excede el límite
+        if (tamaño > MAX_STORAGE_KB * 1024) {
+            alert('❌ El almacenamiento está lleno. Por favor, descarga las encuestas y reinícialas desde el panel de administración.');
+            return false;
+        }
+        
+        localStorage.setItem('encuestasSatisfaccionTI', datos);
+        console.log(`Encuestas guardadas: ${encuestas.length}`);
+        return true;
+    } catch (error) {
+        console.error('Error guardando encuestas:', error);
+        
+        // Intentar liberar espacio
+        if (error.name === 'QuotaExceededError') {
+            alert('❌ El almacenamiento está lleno. Por favor, descarga las encuestas y reinícialas desde el panel de administración.');
+        } else {
+            alert('❌ Error al guardar la encuesta. El almacenamiento podría no estar disponible.');
+            storageDisponible = false;
+        }
+        return false;
+    }
+}
+
+// =============================================
+// BACKUP EN MEMORIA (FALLBACK)
+// =============================================
+function backupEnMemoria() {
+    backupEncuestas = [...encuestas];
+    console.log('Backup en memoria creado:', backupEncuestas.length);
+}
+
+function restaurarDesdeMemoria() {
+    if (encuestas.length === 0 && backupEncuestas.length > 0) {
+        encuestas = [...backupEncuestas];
+        console.log('Datos restaurados desde memoria:', encuestas.length);
+    }
+}
 
 // =============================================
 // SISTEMA DE LOGIN Y NAVEGACIÓN
@@ -102,21 +200,6 @@ function cargarDatos() {
     encuestas = cargarEncuestas();
     actualizarEstadisticas();
     configurarValidacionTiempoReal();
-}
-
-// =============================================
-// FUNCIONES DE GESTIÓN DE DATOS
-// =============================================
-function cargarEncuestas() {
-    const encuestasGuardadas = localStorage.getItem('encuestasSatisfaccionTI');
-    return encuestasGuardadas ? JSON.parse(encuestasGuardadas) : [];
-}
-
-function guardarEncuestas() {
-    localStorage.setItem('encuestasSatisfaccionTI', JSON.stringify(encuestas));
-    if (usuarioLogueado) {
-        actualizarContadorAlmacenamiento();
-    }
 }
 
 // =============================================
@@ -517,19 +600,31 @@ function reiniciarEncuestas() {
     
     if (confirm('¿Estás seguro de que quieres reiniciar todas las encuestas?\n\nEsta acción eliminará permanentemente todas las encuestas guardadas y no se puede deshacer.')) {
         encuestas = [];
-        guardarEncuestas();
+        backupEncuestas = [];
+        
+        // Limpiar localStorage si está disponible
+        if (storageDisponible) {
+            try {
+                localStorage.removeItem('encuestasSatisfaccionTI');
+                console.log('localStorage limpiado');
+            } catch (error) {
+                console.error('Error limpiando localStorage:', error);
+            }
+        }
+        
         actualizarEstadisticas();
         actualizarContadorAlmacenamiento();
-        // Si está en la pestaña de gráficas, actualizarlas
+        
         if (document.getElementById('tabGraficas').classList.contains('active')) {
             generarGraficas();
         }
-        alert('Todas las encuestas han sido reiniciadas correctamente.');
+        
+        alert('✅ Todas las encuestas han sido reiniciadas correctamente.');
     }
 }
 
 // =============================================
-// MANEJADOR DEL FORMULARIO
+// MANEJADOR DEL FORMULARIO (MEJORADO)
 // =============================================
 document.getElementById('encuestaForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -540,7 +635,7 @@ document.getElementById('encuestaForm').addEventListener('submit', function(e) {
     }
     
     const nuevaEncuesta = {
-        fecha: new Date().toLocaleDateString('es-ES'), // Solo fecha, sin hora
+        fecha: new Date().toLocaleDateString('es-ES'),
         nombre_usuario: document.getElementById('nombre').value.trim(),
         quien_atendio: document.getElementById('atendio').value,
         falla_reportada: document.getElementById('falla').value.trim(),
@@ -550,32 +645,63 @@ document.getElementById('encuestaForm').addEventListener('submit', function(e) {
         comentarios: document.getElementById('comentarios').value
     };
     
+    // Agregar a array local
     encuestas.push(nuevaEncuesta);
-    guardarEncuestas();
+    console.log('Encuesta agregada. Total en memoria:', encuestas.length);
+    
+    // Intentar guardar en localStorage
+    const guardadoExitoso = guardarEncuestas();
+    
+    // Hacer backup en memoria como fallback
+    backupEnMemoria();
     
     if (usuarioLogueado) {
         actualizarEstadisticas();
         actualizarContadorAlmacenamiento();
-        // Si está en la pestaña de gráficas, actualizarlas
         if (document.getElementById('tabGraficas').classList.contains('active')) {
             generarGraficas();
         }
     }
     
     // Mostrar mensaje de éxito
-    document.getElementById('successMessage').style.display = 'block';
+    const successMsg = document.getElementById('successMessage');
+    if (guardadoExitoso) {
+        successMsg.textContent = '✅ Encuesta enviada y guardada exitosamente';
+        successMsg.style.background = 'linear-gradient(to right, #2ecc71, #27ae60)';
+    } else {
+        successMsg.textContent = '⚠️ Encuesta enviada (guardada en sesión actual)';
+        successMsg.style.background = 'linear-gradient(to right, #f39c12, #e67e22)';
+    }
+    successMsg.style.display = 'block';
     
     // Limpiar formulario
     this.reset();
     
     // Ocultar mensaje después de 5 segundos
     setTimeout(() => {
-        document.getElementById('successMessage').style.display = 'none';
+        successMsg.style.display = 'none';
     }, 5000);
 });
 
-// Cargar datos al iniciar (solo para estadísticas si hay sesión activa)
+// =============================================
+// INICIALIZACIÓN
+// =============================================
 document.addEventListener('DOMContentLoaded', function() {
+    // Verificar localStorage primero
+    verificarLocalStorage();
+    
+    // Cargar encuestas
     encuestas = cargarEncuestas();
+    
+    // Restaurar desde memoria si es necesario
+    restaurarDesdeMemoria();
+    
+    console.log('Encuestas cargadas al iniciar:', encuestas.length);
     configurarValidacionTiempoReal();
+    
+    // Mostrar estado en consola para debug
+    console.log('=== ESTADO DEL SISTEMA ===');
+    console.log('Storage disponible:', storageDisponible);
+    console.log('Encuestas en memoria:', encuestas.length);
+    console.log('Backup en memoria:', backupEncuestas.length);
 });
