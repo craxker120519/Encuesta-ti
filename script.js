@@ -1,118 +1,27 @@
 // =============================================
 // VARIABLES GLOBALES
 // =============================================
-let encuestas = [];
-const TECNICOS = ['Roberto', 'Chantely', 'David'];
-let usuarioLogueado = false;
-const MAX_STORAGE_KB = 5120;
-let charts = {};
-let storageDisponible = true;
-let backupEncuestas = [];
-
-// =============================================
-// VERIFICACIÓN DE LOCALSTORAGE
-// =============================================
-function verificarLocalStorage() {
-    try {
-        const test = 'test';
-        localStorage.setItem(test, test);
-        localStorage.removeItem(test);
-        storageDisponible = true;
-        console.log('localStorage está disponible');
-        return true;
-    } catch (e) {
-        console.error('localStorage no disponible:', e);
-        storageDisponible = false;
-        
-        // Mostrar advertencia al usuario
-        setTimeout(() => {
-            alert('⚠️ Advertencia: El almacenamiento local no está disponible. Las encuestas solo se guardarán en esta sesión.');
-        }, 2000);
-        
-        return false;
-    }
-}
-
-// =============================================
-// FUNCIONES MEJORADAS DE GESTIÓN DE DATOS
-// =============================================
-function cargarEncuestas() {
-    if (!storageDisponible) {
-        console.log('Storage no disponible, cargando array vacío');
-        return [];
-    }
-    
-    try {
-        const encuestasGuardadas = localStorage.getItem('encuestasSatisfaccionTI');
-        if (encuestasGuardadas) {
-            const parsed = JSON.parse(encuestasGuardadas);
-            console.log(`Encuestas cargadas: ${parsed.length}`);
-            return parsed;
-        }
-        return [];
-    } catch (error) {
-        console.error('Error cargando encuestas:', error);
-        storageDisponible = false;
-        return [];
-    }
-}
-
-function guardarEncuestas() {
-    if (!storageDisponible) {
-        console.log('Storage no disponible, no se guardaron encuestas');
-        return false;
-    }
-    
-    try {
-        const datos = JSON.stringify(encuestas);
-        const tamaño = new Blob([datos]).size;
-        
-        // Verificar si excede el límite
-        if (tamaño > MAX_STORAGE_KB * 1024) {
-            alert('❌ El almacenamiento está lleno. Por favor, descarga las encuestas y reinícialas desde el panel de administración.');
-            return false;
-        }
-        
-        localStorage.setItem('encuestasSatisfaccionTI', datos);
-        console.log(`Encuestas guardadas: ${encuestas.length}`);
-        return true;
-    } catch (error) {
-        console.error('Error guardando encuestas:', error);
-        
-        // Intentar liberar espacio
-        if (error.name === 'QuotaExceededError') {
-            alert('❌ El almacenamiento está lleno. Por favor, descarga las encuestas y reinícialas desde el panel de administración.');
-        } else {
-            alert('❌ Error al guardar la encuesta. El almacenamiento podría no estar disponible.');
-            storageDisponible = false;
-        }
-        return false;
-    }
-}
-
-// =============================================
-// BACKUP EN MEMORIA (FALLBACK)
-// =============================================
-function backupEnMemoria() {
-    backupEncuestas = [...encuestas];
-    console.log('Backup en memoria creado:', backupEncuestas.length);
-}
-
-function restaurarDesdeMemoria() {
-    if (encuestas.length === 0 && backupEncuestas.length > 0) {
-        encuestas = [...backupEncuestas];
-        console.log('Datos restaurados desde memoria:', encuestas.length);
-    }
-}
+let encuestas = []; // Array para almacenar todas las encuestas
+const TECNICOS = ['Roberto', 'Chantely', 'David']; // Lista fija de técnicos
+let usuarioLogueado = false; // Estado de autenticación del usuario
+const MAX_STORAGE_KB = 5120; // 5MB máximo de almacenamiento en localStorage
+let charts = {}; // Objeto para almacenar las instancias de gráficas de Chart.js
 
 // =============================================
 // SISTEMA DE LOGIN Y NAVEGACIÓN
 // =============================================
+
+/**
+ * Muestra el modal de login y oscurece el contenido principal
+ */
 function mostrarLogin() {
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('mainContent').style.opacity = '0.3';
 }
 
+/**
+ * Oculta el modal de login y restaura la opacidad del contenido
+ */
 function ocultarLogin() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainContent').style.opacity = '1';
@@ -122,6 +31,10 @@ function ocultarLogin() {
     document.getElementById('password').value = '';
 }
 
+/**
+ * Valida las credenciales de login
+ * Usuario: SISTEMAS, Contraseña: SISTEMAS
+ */
 function validarLogin() {
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
@@ -137,6 +50,9 @@ function validarLogin() {
     }
 }
 
+/**
+ * Muestra el panel de administración y carga los datos
+ */
 function mostrarPanelAdmin() {
     document.getElementById('adminPanel').style.display = 'block';
     cargarDatos();
@@ -145,15 +61,18 @@ function mostrarPanelAdmin() {
     abrirTab(null, 'tabEstadisticas');
 }
 
+/**
+ * Cierra la sesión del administrador y oculta el panel
+ */
 function cerrarSesion() {
     usuarioLogueado = false;
     document.getElementById('adminPanel').style.display = 'none';
     document.getElementById('mainContent').style.opacity = '1';
-    // Destruir gráficas al cerrar sesión
+    // Destruir gráficas al cerrar sesión para liberar memoria
     destruirGraficas();
 }
 
-// Permitir login con Enter
+// Permitir login con Enter en el campo de contraseña
 document.getElementById('password').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         validarLogin();
@@ -163,6 +82,12 @@ document.getElementById('password').addEventListener('keypress', function(e) {
 // =============================================
 // SISTEMA DE PESTAÑAS
 // =============================================
+
+/**
+ * Controla la navegación entre pestañas del panel administrativo
+ * @param {Event} evt - Evento del click
+ * @param {string} tabName - ID de la pestaña a mostrar
+ */
 function abrirTab(evt, tabName) {
     // Ocultar todos los contenidos de pestañas
     const tabContents = document.getElementsByClassName('tab-content');
@@ -185,7 +110,7 @@ function abrirTab(evt, tabName) {
         document.querySelector('.tab-button').classList.add('active');
     }
     
-    // Si se abre la pestaña de gráficas, generarlas
+    // Si se abre la pestaña de gráficas, generarlas con delay para asegurar renderizado
     if (tabName === 'tabGraficas') {
         setTimeout(() => {
             generarGraficas();
@@ -196,6 +121,10 @@ function abrirTab(evt, tabName) {
 // =============================================
 // FUNCIONES DE INICIALIZACIÓN
 // =============================================
+
+/**
+ * Función principal de carga de datos al iniciar
+ */
 function cargarDatos() {
     encuestas = cargarEncuestas();
     actualizarEstadisticas();
@@ -203,8 +132,35 @@ function cargarDatos() {
 }
 
 // =============================================
+// FUNCIONES DE GESTIÓN DE DATOS
+// =============================================
+
+/**
+ * Carga las encuestas desde localStorage
+ * @returns {Array} Array de encuestas o array vacío si no hay datos
+ */
+function cargarEncuestas() {
+    const encuestasGuardadas = localStorage.getItem('encuestasSatisfaccionTI');
+    return encuestasGuardadas ? JSON.parse(encuestasGuardadas) : [];
+}
+
+/**
+ * Guarda las encuestas en localStorage y actualiza contadores
+ */
+function guardarEncuestas() {
+    localStorage.setItem('encuestasSatisfaccionTI', JSON.stringify(encuestas));
+    if (usuarioLogueado) {
+        actualizarContadorAlmacenamiento();
+    }
+}
+
+// =============================================
 // CONTADOR DE ALMACENAMIENTO
 // =============================================
+
+/**
+ * Calcula y muestra el uso actual de almacenamiento
+ */
 function actualizarContadorAlmacenamiento() {
     if (!usuarioLogueado) return;
     
@@ -214,7 +170,7 @@ function actualizarContadorAlmacenamiento() {
     const tamañoKB = (tamañoBytes / 1024).toFixed(2);
     const porcentajeUso = (tamañoBytes / (MAX_STORAGE_KB * 1024)) * 100;
     
-    // Estimar cuántas encuestas más caben
+    // Estimar cuántas encuestas más caben basado en el tamaño promedio
     const tamañoPromedioEncuesta = encuestas.length > 0 ? tamañoBytes / encuestas.length : 300;
     const encuestasRestantes = Math.floor(((MAX_STORAGE_KB * 1024) - tamañoBytes) / tamañoPromedioEncuesta);
     
@@ -237,6 +193,10 @@ function actualizarContadorAlmacenamiento() {
 // =============================================
 // FUNCIONES DE INTERFAZ
 // =============================================
+
+/**
+ * Actualiza todas las estadísticas mostradas en el panel administrativo
+ */
 function actualizarEstadisticas() {
     if (!usuarioLogueado) return;
 
@@ -244,11 +204,13 @@ function actualizarEstadisticas() {
     document.getElementById('totalEncuestas').textContent = encuestas.length;
     
     if (encuestas.length > 0) {
+        // Calcular promedio de soporte técnico
         const sumaSoporte = encuestas.reduce((total, encuesta) => 
             total + parseInt(encuesta.calificacion_soporte), 0);
         const promedioSoporte = (sumaSoporte / encuestas.length).toFixed(1);
         document.getElementById('promedioSoporte').textContent = promedioSoporte;
         
+        // Calcular porcentaje de problemas resueltos
         const problemasResueltos = encuestas.filter(encuesta => 
             encuesta.problema_resuelto === 'Sí').length;
         const porcentajeResueltos = ((problemasResueltos / encuestas.length) * 100).toFixed(0);
@@ -265,10 +227,19 @@ function actualizarEstadisticas() {
     });
 }
 
+/**
+ * Inserta texto de sugerencia en el campo de falla
+ * @param {string} texto - Texto a insertar
+ */
 function insertSuggestion(texto) {
     document.getElementById('falla').value = texto;
 }
 
+/**
+ * Muestra u oculta mensajes de error en los campos del formulario
+ * @param {string} elementoId - ID del elemento
+ * @param {boolean} mostrar - True para mostrar, false para ocultar
+ */
 function mostrarError(elementoId, mostrar) {
     const errorElement = document.getElementById(elementoId + 'Error');
     if (errorElement) {
@@ -279,6 +250,10 @@ function mostrarError(elementoId, mostrar) {
 // =============================================
 // GRÁFICAS
 // =============================================
+
+/**
+ * Genera todas las gráficas del sistema
+ */
 function generarGraficas() {
     if (encuestas.length === 0) {
         // Mostrar mensaje si no hay datos
@@ -286,7 +261,7 @@ function generarGraficas() {
         return;
     }
     
-    // Destruir gráficas existentes
+    // Destruir gráficas existentes para evitar memory leaks
     destruirGraficas();
     
     // Generar datos para las gráficas
@@ -321,6 +296,10 @@ function generarGraficas() {
     );
 }
 
+/**
+ * Calcula los datos necesarios para generar las gráficas
+ * @returns {Object} Objeto con datos organizados para gráficas
+ */
 function calcularDatosGraficas() {
     const datos = {
         porTecnico: {},
@@ -329,15 +308,15 @@ function calcularDatosGraficas() {
         resolucion: {Sí:0, Parcialmente:0, No:0}
     };
     
-    // Inicializar contadores
+    // Inicializar contadores para cada técnico
     TECNICOS.forEach(tecnico => datos.porTecnico[tecnico] = 0);
     
-    // Contar todas las respuestas
+    // Contar todas las respuestas de las encuestas
     encuestas.forEach(encuesta => {
         // Por técnico
         datos.porTecnico[encuesta.quien_atendio]++;
         
-        // Calificaciones
+        // Calificaciones (convertir a índice 0-based)
         const soporteIdx = parseInt(encuesta.calificacion_soporte) - 1;
         const tiempoIdx = parseInt(encuesta.tiempo_respuesta) - 1;
         
@@ -353,6 +332,14 @@ function calcularDatosGraficas() {
     return datos;
 }
 
+/**
+ * Crea una gráfica de barras
+ * @param {string} canvasId - ID del elemento canvas
+ * @param {string} titulo - Título de la gráfica
+ * @param {Array} etiquetas - Etiquetas del eje X
+ * @param {Array} datos - Datos a graficar
+ * @param {Array} colores - Colores para las barras
+ */
 function crearGraficaBarras(canvasId, titulo, etiquetas, datos, colores) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     charts[canvasId] = new Chart(ctx, {
@@ -382,6 +369,14 @@ function crearGraficaBarras(canvasId, titulo, etiquetas, datos, colores) {
     });
 }
 
+/**
+ * Crea una gráfica de dona
+ * @param {string} canvasId - ID del elemento canvas
+ * @param {string} titulo - Título de la gráfica
+ * @param {Array} etiquetas - Etiquetas para cada segmento
+ * @param {Array} datos - Datos a graficar
+ * @param {Array} colores - Colores para los segmentos
+ */
 function crearGraficaDona(canvasId, titulo, etiquetas, datos, colores) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     charts[canvasId] = new Chart(ctx, {
@@ -408,6 +403,9 @@ function crearGraficaDona(canvasId, titulo, etiquetas, datos, colores) {
     });
 }
 
+/**
+ * Destruye todas las gráficas existentes para liberar memoria
+ */
 function destruirGraficas() {
     // Destruir todas las gráficas existentes
     Object.values(charts).forEach(chart => {
@@ -419,6 +417,10 @@ function destruirGraficas() {
 // =============================================
 // VALIDACIÓN DEL FORMULARIO
 // =============================================
+
+/**
+ * Configura la validación en tiempo real para todos los campos del formulario
+ */
 function configurarValidacionTiempoReal() {
     const campos = ['nombre', 'atendio', 'falla', 'resuelto'];
     
@@ -431,6 +433,7 @@ function configurarValidacionTiempoReal() {
         }
     });
     
+    // Validación para radio buttons
     document.querySelectorAll('input[name="soporte"], input[name="tiempo"]').forEach(radio => {
         radio.addEventListener('change', function() {
             const name = this.getAttribute('name');
@@ -440,6 +443,10 @@ function configurarValidacionTiempoReal() {
     });
 }
 
+/**
+ * Valida todo el formulario antes del envío
+ * @returns {boolean} True si el formulario es válido
+ */
 function validarFormulario() {
     const camposRequeridos = [
         {id: 'nombre', valor: document.getElementById('nombre').value.trim()},
@@ -450,6 +457,7 @@ function validarFormulario() {
     
     let valido = true;
     
+    // Validar campos de texto/select
     camposRequeridos.forEach(campo => {
         if (campo.valor === '') {
             mostrarError(campo.id, true);
@@ -459,6 +467,7 @@ function validarFormulario() {
         }
     });
     
+    // Validar radio buttons
     if (!document.querySelector('input[name="soporte"]:checked')) {
         mostrarError('soporte', true);
         valido = false;
@@ -475,6 +484,10 @@ function validarFormulario() {
 // =============================================
 // GENERACIÓN DE EXCEL
 // =============================================
+
+/**
+ * Descarga un archivo Excel con todas las encuestas organizadas
+ */
 function descargarExcelCompleto() {
     if (!usuarioLogueado) {
         alert('Debe iniciar sesión para descargar las encuestas.');
@@ -497,6 +510,10 @@ function descargarExcelCompleto() {
     }
 }
 
+/**
+ * Crea la estructura completa del libro de Excel
+ * @returns {Object} Workbook de SheetJS
+ */
 function crearExcelCompleto() {
     const workbook = XLSX.utils.book_new();
     
@@ -521,6 +538,10 @@ function crearExcelCompleto() {
     return workbook;
 }
 
+/**
+ * Calcula datos resumidos para la hoja de resumen del Excel
+ * @returns {Object} Datos organizados para el resumen
+ */
 function calcularDatosResumen() {
     if (encuestas.length === 0) {
         return {
@@ -564,7 +585,12 @@ function calcularDatosResumen() {
     return datos;
 }
 
-function crearHojaResumenGeneral(datos) {
+/**
+ * Crea la hoja de resumen general para el Excel
+ * @param {Object} datos - Datos calculados para el resumen
+ * @returns {Object} Worksheet de SheetJS
+ */
+function crearHojaResumenGeneral(datosResumen) {
     return XLSX.utils.aoa_to_sheet([
         ["RESUMEN GENERAL - ENCUESTAS DE SATISFACCIÓN TI"],
         [`Generado el: ${new Date().toLocaleDateString('es-ES')}`],
@@ -587,6 +613,10 @@ function crearHojaResumenGeneral(datos) {
 // =============================================
 // REINICIO DE ENCUESTAS
 // =============================================
+
+/**
+ * Reinicia todas las encuestas (elimina todos los datos)
+ */
 function reiniciarEncuestas() {
     if (!usuarioLogueado) {
         alert('Debe iniciar sesión para reiniciar las encuestas.');
@@ -600,32 +630,24 @@ function reiniciarEncuestas() {
     
     if (confirm('¿Estás seguro de que quieres reiniciar todas las encuestas?\n\nEsta acción eliminará permanentemente todas las encuestas guardadas y no se puede deshacer.')) {
         encuestas = [];
-        backupEncuestas = [];
-        
-        // Limpiar localStorage si está disponible
-        if (storageDisponible) {
-            try {
-                localStorage.removeItem('encuestasSatisfaccionTI');
-                console.log('localStorage limpiado');
-            } catch (error) {
-                console.error('Error limpiando localStorage:', error);
-            }
-        }
-        
+        guardarEncuestas();
         actualizarEstadisticas();
         actualizarContadorAlmacenamiento();
-        
+        // Si está en la pestaña de gráficas, actualizarlas
         if (document.getElementById('tabGraficas').classList.contains('active')) {
             generarGraficas();
         }
-        
-        alert('✅ Todas las encuestas han sido reiniciadas correctamente.');
+        alert('Todas las encuestas han sido reiniciadas correctamente.');
     }
 }
 
 // =============================================
-// MANEJADOR DEL FORMULARIO (MEJORADO)
+// MANEJADOR DEL FORMULARIO
 // =============================================
+
+/**
+ * Event listener principal para el envío del formulario
+ */
 document.getElementById('encuestaForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -634,8 +656,9 @@ document.getElementById('encuestaForm').addEventListener('submit', function(e) {
         return;
     }
     
+    // Crear nueva encuesta con los datos del formulario
     const nuevaEncuesta = {
-        fecha: new Date().toLocaleDateString('es-ES'),
+        fecha: new Date().toLocaleDateString('es-ES'), // Solo fecha, sin hora
         nombre_usuario: document.getElementById('nombre').value.trim(),
         quien_atendio: document.getElementById('atendio').value,
         falla_reportada: document.getElementById('falla').value.trim(),
@@ -645,63 +668,34 @@ document.getElementById('encuestaForm').addEventListener('submit', function(e) {
         comentarios: document.getElementById('comentarios').value
     };
     
-    // Agregar a array local
+    // Agregar encuesta y guardar
     encuestas.push(nuevaEncuesta);
-    console.log('Encuesta agregada. Total en memoria:', encuestas.length);
+    guardarEncuestas();
     
-    // Intentar guardar en localStorage
-    const guardadoExitoso = guardarEncuestas();
-    
-    // Hacer backup en memoria como fallback
-    backupEnMemoria();
-    
+    // Actualizar interfaz si hay sesión activa
     if (usuarioLogueado) {
         actualizarEstadisticas();
         actualizarContadorAlmacenamiento();
+        // Si está en la pestaña de gráficas, actualizarlas
         if (document.getElementById('tabGraficas').classList.contains('active')) {
             generarGraficas();
         }
     }
     
     // Mostrar mensaje de éxito
-    const successMsg = document.getElementById('successMessage');
-    if (guardadoExitoso) {
-        successMsg.textContent = '✅ Encuesta enviada y guardada exitosamente';
-        successMsg.style.background = 'linear-gradient(to right, #2ecc71, #27ae60)';
-    } else {
-        successMsg.textContent = '⚠️ Encuesta enviada (guardada en sesión actual)';
-        successMsg.style.background = 'linear-gradient(to right, #f39c12, #e67e22)';
-    }
-    successMsg.style.display = 'block';
+    document.getElementById('successMessage').style.display = 'block';
     
     // Limpiar formulario
     this.reset();
     
     // Ocultar mensaje después de 5 segundos
     setTimeout(() => {
-        successMsg.style.display = 'none';
+        document.getElementById('successMessage').style.display = 'none';
     }, 5000);
 });
 
-// =============================================
-// INICIALIZACIÓN
-// =============================================
+// Cargar datos al iniciar (solo para estadísticas si hay sesión activa)
 document.addEventListener('DOMContentLoaded', function() {
-    // Verificar localStorage primero
-    verificarLocalStorage();
-    
-    // Cargar encuestas
     encuestas = cargarEncuestas();
-    
-    // Restaurar desde memoria si es necesario
-    restaurarDesdeMemoria();
-    
-    console.log('Encuestas cargadas al iniciar:', encuestas.length);
     configurarValidacionTiempoReal();
-    
-    // Mostrar estado en consola para debug
-    console.log('=== ESTADO DEL SISTEMA ===');
-    console.log('Storage disponible:', storageDisponible);
-    console.log('Encuestas en memoria:', encuestas.length);
-    console.log('Backup en memoria:', backupEncuestas.length);
 });
